@@ -97,9 +97,9 @@ struct ClaudeInstancesView: View {
                 }
                 .padding(.horizontal, 12)
 
-                // Emoji
-                Text(buddy.species.emoji)
-                    .font(.system(size: 36))
+                // ASCII art sprite
+                BuddyASCIIView(buddy: buddy)
+                    .frame(height: 60)
 
                 if buddy.isShiny {
                     Text("✨ SHINY ✨")

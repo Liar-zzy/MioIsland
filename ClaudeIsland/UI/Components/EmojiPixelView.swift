@@ -127,8 +127,7 @@ struct EmojiPixelView: View {
             for col in 0..<gridSize {
                 // Sample center of cell
                 let sx = col * cellSize + cellSize / 2
-                // Flip Y because NSBitmapImageRep is top-left origin
-                let sy = (gridSize - 1 - row) * cellSize + cellSize / 2
+                let sy = row * cellSize + cellSize / 2
                 let offset = (sy * renderSize + sx) * 4
                 let r = Double(data[offset]) / 255.0
                 let g = Double(data[offset + 1]) / 255.0
