@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-// Compute Claude Code buddy bones using Bun.hash (matches Claude Code exactly)
+// Compute Claude Code buddy bones dynamically.
+// Reads the actual salt from the Claude Code binary (supports patched installs).
 // Usage: bun buddy-bones.js
 // Output: JSON with species, rarity, eye, hat, shiny, stats
 
@@ -7,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// --- Read config ---
 const configPath = path.join(os.homedir(), '.claude.json');
 let config;
 try {
@@ -17,9 +19,76 @@ try {
 }
 
 const userId = config.oauthAccount?.accountUuid ?? config.userID ?? 'anon';
-const SALT = 'friend-2026-401';
-const key = userId + SALT;
 
+// --- Find Claude binary and extract salt ---
+const ORIGINAL_SALT = 'friend-2026-401';
+const SALT_LEN = ORIGINAL_SALT.length;
+
+function findClaudeBinary() {
+  const home = os.homedir();
+  const candidates = [
+    // Native install — versioned binaries
+    ...(() => {
+      const versionsDir = path.join(home, '.local', 'share', 'claude', 'versions');
+      try {
+        return fs.readdirSync(versionsDir)
+          .filter(v => !v.includes('.bak') && !v.includes('.anybuddy'))
+          .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
+          .map(v => path.join(versionsDir, v));
+      } catch { return []; }
+    })(),
+    path.join(home, '.local', 'bin', 'claude'),
+    path.join(home, '.claude', 'local', 'claude'),
+    '/opt/homebrew/bin/claude',
+    '/usr/local/bin/claude',
+  ];
+
+  for (const p of candidates) {
+    try {
+      const stat = fs.statSync(p);
+      if (stat.isFile() && stat.size > 1_000_000) return p;
+    } catch {}
+  }
+  return null;
+}
+
+function extractSalt(binaryPath) {
+  try {
+    const buf = fs.readFileSync(binaryPath);
+    // Search for the original salt first
+    const origBuf = Buffer.from(ORIGINAL_SALT, 'utf-8');
+    const idx = buf.indexOf(origBuf);
+    if (idx !== -1) return ORIGINAL_SALT;
+
+    // If not found, the binary was patched. Scan for 15-char ASCII strings
+    // at known offset patterns. The salt appears 3 times in the binary.
+    // Strategy: find any 15-byte ASCII string at the same offsets where
+    // the original salt would be. We do this by searching around known
+    // context bytes that surround the salt in the binary.
+    //
+    // Simpler approach: check the .anybuddy-bak for the original salt's
+    // offset, then read the same offset from the current binary.
+    // Check both backup naming conventions
+    const bakCandidates = [binaryPath + '.anybuddy-bak', binaryPath + '.bak'];
+    const bakPath = bakCandidates.find(p => fs.existsSync(p));
+    if (bakPath) {
+      const bakBuf = fs.readFileSync(bakPath);
+      const bakIdx = bakBuf.indexOf(origBuf);
+      if (bakIdx !== -1) {
+        // Read the same position from current binary
+        const patchedSalt = buf.slice(bakIdx, bakIdx + SALT_LEN).toString('utf-8');
+        if (/^[\x20-\x7e]+$/.test(patchedSalt)) return patchedSalt;
+      }
+    }
+  } catch {}
+  return ORIGINAL_SALT; // fallback
+}
+
+const binaryPath = findClaudeBinary();
+const SALT = binaryPath ? extractSalt(binaryPath) : ORIGINAL_SALT;
+
+// --- Mulberry32 PRNG ---
+const key = userId + SALT;
 const h = Number(BigInt(Bun.hash(key)) & 0xffffffffn);
 
 function mulberry32(seed) {
@@ -35,6 +104,7 @@ function mulberry32(seed) {
 
 const rng = mulberry32(h);
 
+// --- Constants ---
 const SPECIES = ['duck','goose','blob','cat','dragon','octopus','owl','penguin','turtle','snail','ghost','axolotl','capybara','cactus','robot','rabbit','mushroom','chonk'];
 const RARITIES = ['common','uncommon','rare','epic','legendary'];
 const RARITY_WEIGHTS = {common:60,uncommon:25,rare:10,epic:4,legendary:1};
@@ -45,6 +115,7 @@ const RARITY_FLOOR = {common:5,uncommon:15,rare:25,epic:35,legendary:50};
 
 function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
 
+// --- Roll ---
 const total = Object.values(RARITY_WEIGHTS).reduce((a,b)=>a+b,0);
 let roll = rng() * total;
 let rarity = 'common';
