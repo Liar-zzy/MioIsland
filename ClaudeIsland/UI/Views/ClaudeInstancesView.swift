@@ -493,12 +493,14 @@ struct InstanceRow: View {
                         .lineLimit(1)
                 }
             }
-        } else if session.phase == .waitingForInput, let summary = session.smartSummary {
-            // Show smart summary in green italic for completed sessions
+        } else if let summary = session.smartSummary {
+            // Show smart summary for any session that has conversation data
             Text(summary)
                 .font(.system(size: 10, weight: .regular).italic())
-                .foregroundColor(Color(red: 0.29, green: 0.87, blue: 0.5))
-                .lineLimit(1)
+                .foregroundColor(session.phase == .waitingForInput
+                    ? Color(red: 0.29, green: 0.87, blue: 0.5)
+                    : .white.opacity(0.5))
+                .lineLimit(2)
         } else if let role = session.lastMessageRole {
             switch role {
             case "tool":
