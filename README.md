@@ -21,7 +21,7 @@ English | [中文](README.zh-CN.md)
 
 [![Release](https://img.shields.io/github/v/release/xmqywx/CodeIsland?style=flat-square&color=4ADE80)](https://github.com/xmqywx/CodeIsland/releases)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)](https://github.com/xmqywx/CodeIsland/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE.md)
+[![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-green?style=flat-square)](LICENSE.md)
 
 </div>
 
@@ -186,4 +186,4 @@ Forked from [Claude Island](https://github.com/farouqaldori/claude-island) by fa
 
 ## License
 
-MIT
+CC BY-NC 4.0 — free for personal use, no commercial use.

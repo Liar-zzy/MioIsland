@@ -19,7 +19,7 @@
 
 [![Release](https://img.shields.io/github/v/release/xmqywx/CodeIsland?style=flat-square&color=4ADE80)](https://github.com/xmqywx/CodeIsland/releases)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)](https://github.com/xmqywx/CodeIsland/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE.md)
+[![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-green?style=flat-square)](LICENSE.md)
 
 [English](README.md) | 中文
 
@@ -182,4 +182,4 @@ xcodebuild -project ClaudeIsland.xcodeproj -scheme ClaudeIsland \
 
 ## 许可证
 
-MIT
+CC BY-NC 4.0 — 个人免费使用，禁止商业用途。
