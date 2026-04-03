@@ -162,15 +162,12 @@ actor SessionStore {
             session.subagentState = SubagentState()
         }
 
-        // Always try to parse conversationInfo if missing — regardless of phase
-        // This ensures smartSummary is available for display
-        if session.conversationInfo.firstUserMessage == nil {
-            let conversationInfo = await ConversationParser.shared.parse(
-                sessionId: sessionId,
-                cwd: event.cwd
-            )
-            session.conversationInfo = conversationInfo
-        }
+        // Parse conversationInfo on every event to keep summary fresh
+        let conversationInfo = await ConversationParser.shared.parse(
+            sessionId: sessionId,
+            cwd: event.cwd
+        )
+        session.conversationInfo = conversationInfo
 
         sessions[sessionId] = session
         publishState()
