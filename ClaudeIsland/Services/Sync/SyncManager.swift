@@ -6,6 +6,7 @@
 //  Manages connection lifecycle, message relay, and RPC execution.
 //
 
+import Combine
 import Foundation
 import os.log
 

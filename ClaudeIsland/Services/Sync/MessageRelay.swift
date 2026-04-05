@@ -79,12 +79,26 @@ final class MessageRelay {
     }
 
     private func relaySessionStatus(_ session: SessionState) {
+        // Map SessionPhase to string for server
+        let phaseString: String
+        switch session.phase {
+        case .idle: phaseString = "idle"
+        case .processing: phaseString = "thinking"
+        case .waitingForApproval: phaseString = "waiting_approval"
+        case .waitingForInput: phaseString = "waiting_input"
+        case .compacting: phaseString = "compacting"
+        case .ended: phaseString = "ended"
+        }
+
+        // Get current tool name from in-progress tools
+        let currentToolName = session.toolTracker.inProgress.values.first?.name ?? ""
+
         // Build metadata from current session state
         let metadata: [String: Any] = [
             "path": session.cwd,
             "title": session.projectName,
-            "phase": session.phase.rawValue,
-            "toolName": session.toolTracker.currentToolName ?? "",
+            "phase": phaseString,
+            "toolName": currentToolName,
         ]
 
         guard let metadataJson = try? JSONSerialization.data(withJSONObject: metadata),

@@ -6,6 +6,7 @@
 //  Handles auth, Socket.io lifecycle, and reconnection.
 //
 
+import Combine
 import Foundation
 import os.log
 import CodeLightCrypto
