@@ -95,8 +95,12 @@ const translations = {
   "community.join": { zh: "加入社区", en: "Join Community" },
   "community.title": { zh: "加入 CodeIsland 用户群", en: "Join CodeIsland Community" },
   "community.subtitle": { zh: "扫码加入微信群，第一时间获取更新、提 bug、交流使用技巧", en: "Scan to join our WeChat group — get updates, report bugs, share tips" },
-  "community.qrNote": { zh: "微信扫一扫加入", en: "Scan with WeChat to join" },
-  "community.qrExpiry": { zh: "二维码每 7 天更新，如已失效请添加开发者微信：carey_314", en: "QR code refreshes every 7 days. If expired, add the developer on WeChat: carey_314" },
+  "community.tabGroup": { zh: "微信群", en: "Group Chat" },
+  "community.tabPersonal": { zh: "开发者微信", en: "Developer WeChat" },
+  "community.groupNote": { zh: "使用微信扫一扫加入群聊", en: "Use WeChat to scan and join the group" },
+  "community.groupExpiry": { zh: "群二维码每 7 天自动更新", en: "Group QR code refreshes every 7 days" },
+  "community.personalNote": { zh: "如群二维码失效，扫码添加开发者", en: "If group QR is expired, add the developer" },
+  "community.wechatId": { zh: "微信号：", en: "WeChat ID: " },
   "community.close": { zh: "关闭", en: "Close" },
 
   // Footer

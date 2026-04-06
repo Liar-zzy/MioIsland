@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "motion/react"
-import { X } from "lucide-react"
-import { useEffect } from "react"
+import { X, Users, User, Copy, Check } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useI18n } from "../lib/i18n"
 
 interface Props {
@@ -8,8 +8,14 @@ interface Props {
   onClose: () => void
 }
 
+type Tab = "group" | "personal"
+
+const WECHAT_ID = "A115939"
+
 export default function CommunityModal({ open, onClose }: Props) {
   const { t } = useI18n()
+  const [tab, setTab] = useState<Tab>("group")
+  const [copied, setCopied] = useState(false)
 
   // ESC key closes modal
   useEffect(() => {
@@ -24,6 +30,22 @@ export default function CommunityModal({ open, onClose }: Props) {
       document.body.style.overflow = ""
     }
   }, [open, onClose])
+
+  // Reset to group tab when modal opens
+  useEffect(() => {
+    if (open) {
+      setTab("group")
+      setCopied(false)
+    }
+  }, [open])
+
+  const copyWechatId = async () => {
+    try {
+      await navigator.clipboard.writeText(WECHAT_ID)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {}
+  }
 
   return (
     <AnimatePresence>
@@ -64,33 +86,105 @@ export default function CommunityModal({ open, onClose }: Props) {
 
             {/* Header */}
             <div className="pt-8 pb-4 px-6 text-center">
-              <h3 className="font-display text-2xl font-bold text-text-primary">
+              <h3 className="font-display text-xl sm:text-2xl font-bold text-text-primary">
                 {t("community.title")}
               </h3>
-              <p className="text-sm text-text-muted mt-2 leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-muted mt-2 leading-relaxed">
                 {t("community.subtitle")}
               </p>
             </div>
 
-            {/* QR Code */}
-            <div className="px-6 pb-6">
-              <div className="relative rounded-2xl overflow-hidden bg-white p-3 mx-auto max-w-[280px]">
-                <img
-                  src={`${import.meta.env.BASE_URL}wechat-qr.jpg`}
-                  alt="WeChat Group QR Code"
-                  className="w-full h-auto block"
-                />
+            {/* Tab switcher */}
+            <div className="px-6 pb-4">
+              <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.04]">
+                <button
+                  onClick={() => setTab("group")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                    tab === "group"
+                      ? "bg-white/[0.08] text-text-primary shadow-sm"
+                      : "text-text-muted hover:text-text-secondary"
+                  }`}
+                >
+                  <Users size={13} />
+                  {t("community.tabGroup")}
+                </button>
+                <button
+                  onClick={() => setTab("personal")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                    tab === "personal"
+                      ? "bg-white/[0.08] text-text-primary shadow-sm"
+                      : "text-text-muted hover:text-text-secondary"
+                  }`}
+                >
+                  <User size={13} />
+                  {t("community.tabPersonal")}
+                </button>
               </div>
+            </div>
 
-              {/* Note */}
-              <div className="mt-4 px-2">
-                <p className="text-xs text-text-muted text-center leading-relaxed">
-                  {t("community.qrNote")}
-                </p>
-                <p className="text-[10px] text-text-muted/60 text-center leading-relaxed mt-2">
-                  {t("community.qrExpiry")}
-                </p>
-              </div>
+            {/* QR Code content */}
+            <div className="px-6 pb-6">
+              <AnimatePresence mode="wait">
+                {tab === "group" ? (
+                  <motion.div
+                    key="group"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="relative rounded-2xl overflow-hidden bg-white p-3 mx-auto max-w-[240px]">
+                      <img
+                        src={`${import.meta.env.BASE_URL}wechat-qr.jpg`}
+                        alt="WeChat Group QR Code"
+                        className="w-full h-auto block"
+                      />
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-xs text-text-muted text-center leading-relaxed">
+                        {t("community.groupNote")}
+                      </p>
+                      <p className="text-[10px] text-text-muted/60 text-center leading-relaxed mt-1.5">
+                        {t("community.groupExpiry")}
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="personal"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="relative rounded-2xl overflow-hidden bg-white p-3 mx-auto max-w-[240px]">
+                      <img
+                        src={`${import.meta.env.BASE_URL}wechat-personal.jpg`}
+                        alt="Developer WeChat QR Code"
+                        className="w-full h-auto block"
+                      />
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-xs text-text-muted text-center leading-relaxed">
+                        {t("community.personalNote")}
+                      </p>
+                      {/* WeChat ID with copy */}
+                      <button
+                        onClick={copyWechatId}
+                        className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] transition-all group cursor-pointer"
+                      >
+                        <span className="text-xs text-text-muted">{t("community.wechatId")}</span>
+                        <span className="font-mono text-sm font-semibold text-text-primary tracking-wider">{WECHAT_ID}</span>
+                        {copied ? (
+                          <Check size={13} className="text-green" />
+                        ) : (
+                          <Copy size={13} className="text-text-muted group-hover:text-text-primary transition-colors" />
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Gradient border glow */}
