@@ -30,6 +30,7 @@ final class MessageRelay {
     /// Track last sent phase per session to avoid duplicate updates
     private var lastSentPhase: [String: String] = [:]
     private var lastSentTool: [String: String] = [:]
+    private var lastSentTitle: [String: String] = [:]
 
     /// Reverse lookup: server session id → local session id
     func localSessionId(forServerId serverId: String) -> String? {
@@ -62,11 +63,13 @@ final class MessageRelay {
     // MARK: - Session State Processing
 
     private func handleSessionsUpdate(_ sessions: [SessionState]) {
+        Self.logger.debug("handleSessionsUpdate: \(sessions.count) sessions, known=\(self.knownSessionIds.count), server=\(self.serverSessionIds.count)")
         for session in sessions {
             let sessionId = session.sessionId
 
             // New session detected — create on server
             if !knownSessionIds.contains(sessionId) {
+                Self.logger.info("New session detected: \(sessionId.prefix(8))")
                 knownSessionIds.insert(sessionId)
                 syncedItemCounts[sessionId] = 0
                 Task { await createServerSession(session) }
@@ -131,7 +134,29 @@ final class MessageRelay {
 
     private func syncPhaseChange(_ session: SessionState) {
         let localId = session.sessionId
-        guard let serverId = serverSessionIds[localId], connection.isConnected else { return }
+        guard let serverId = serverSessionIds[localId] else {
+            Self.logger.debug("syncPhaseChange skipped: no serverSessionId for \(localId.prefix(8))")
+            return
+        }
+        guard connection.isConnected else {
+            Self.logger.debug("syncPhaseChange skipped: not connected")
+            return
+        }
+
+        // Update session metadata when title changes (conversation summary evolves)
+        let currentTitle = session.displayTitle
+        if lastSentTitle[localId] != currentTitle {
+            lastSentTitle[localId] = currentTitle
+            let metadata: [String: Any] = [
+                "path": session.cwd,
+                "title": currentTitle,
+                "projectName": session.projectName,
+            ]
+            if let data = try? JSONSerialization.data(withJSONObject: metadata),
+               let json = String(data: data, encoding: .utf8) {
+                connection.updateMetadata(sessionId: serverId, metadata: json, expectedVersion: 0)
+            }
+        }
 
         let mapped = mappedPhase(session)
         let phase = mapped.phase
@@ -270,7 +295,8 @@ final class MessageRelay {
     private func createServerSession(_ session: SessionState) async {
         let metadata: [String: Any] = [
             "path": session.cwd,
-            "title": session.projectName,
+            "title": session.displayTitle,     // Smart title: summary > user msg > project name
+            "projectName": session.projectName, // Folder name as fallback
         ]
 
         guard let metadataJson = try? JSONSerialization.data(withJSONObject: metadata),
