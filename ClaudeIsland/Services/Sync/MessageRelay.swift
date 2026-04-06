@@ -136,28 +136,57 @@ final class MessageRelay {
         let phase = mapped.phase
         let tool = mapped.toolName ?? ""
 
-        // Skip if phase + tool unchanged
-        if lastSentPhase[localId] == phase && lastSentTool[localId] == tool {
+        // Extract last user message and assistant summary from chat items
+        let lastUserMsg = extractLastUserMessage(session.chatItems)
+        let lastAssistant = extractLastAssistantSummary(session.chatItems)
+
+        // Include messages in dedup key so we update when messages change
+        let dedupKey = "\(phase)|\(tool)|\(lastUserMsg.prefix(50))|\(lastAssistant.prefix(50))"
+        if lastSentPhase[localId] == dedupKey {
             return
         }
-        lastSentPhase[localId] = phase
-        lastSentTool[localId] = tool
+        lastSentPhase[localId] = dedupKey
 
-        // Send as a phase update message (special type)
-        let payload: [String: Any] = [
+        // Build payload
+        var payload: [String: Any] = [
             "type": "phase",
             "phase": phase,
             "toolName": mapped.toolName as Any,
             "timestamp": Date().timeIntervalSince1970,
         ]
+        if !lastUserMsg.isEmpty {
+            payload["lastUserMessage"] = String(lastUserMsg.prefix(120))
+        }
+        if !lastAssistant.isEmpty {
+            payload["lastAssistantSummary"] = String(lastAssistant.prefix(200))
+        }
 
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
               let json = String(data: data, encoding: .utf8) else { return }
 
-        // Use a unique localId so it's not deduped
         let phaseId = "phase-\(localId)-\(Int(Date().timeIntervalSince1970 * 1000))"
         connection.sendMessage(sessionId: serverId, content: json, localId: phaseId)
         Self.logger.info("Phase sync: \(localId.prefix(8)) → \(phase) tool=\(tool)")
+    }
+
+    /// Find the most recent user message text
+    private func extractLastUserMessage(_ items: [ChatHistoryItem]) -> String {
+        for item in items.reversed() {
+            if case .user(let text) = item.type {
+                return text
+            }
+        }
+        return ""
+    }
+
+    /// Find the most recent assistant text response
+    private func extractLastAssistantSummary(_ items: [ChatHistoryItem]) -> String {
+        for item in items.reversed() {
+            if case .assistant(let text) = item.type, !text.isEmpty {
+                return text
+            }
+        }
+        return ""
     }
 
     // MARK: - Message Sync
