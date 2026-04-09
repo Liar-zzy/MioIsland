@@ -199,25 +199,15 @@ struct AskUserQuestionView: View {
         let cwd = session.cwd
         let downPresses = index - 1
 
-        // Send arrow-down (N-1) times using CSI B
-        for i in 0..<downPresses {
-            let ok = performGhosttyAction("csi:B", cwd: cwd)
-            DebugLogger.log("AskUser", "Arrow down \(i+1): \(ok)")
+        for _ in 0..<downPresses {
+            performGhosttyAction("csi:B", cwd: cwd) // Arrow Down
         }
-
         if downPresses > 0 {
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
+        performGhosttyAction("text:\\r", cwd: cwd) // Enter
 
-        // Press Enter — try multiple formats
-        let enterOk = performGhosttyAction("text:\\r", cwd: cwd)
-        DebugLogger.log("AskUser", "Enter (text:\\r): \(enterOk)")
-
-        if !enterOk {
-            // Fallback: try text:\n
-            let ok2 = performGhosttyAction("text:\\n", cwd: cwd)
-            DebugLogger.log("AskUser", "Enter (text:\\n): \(ok2)")
-        }
+        DebugLogger.log("AskUser", "Sent \(downPresses) arrows + Enter")
     }
 
     private func submitCustomText() {
@@ -228,11 +218,13 @@ struct AskUserQuestionView: View {
         DebugLogger.log("AskUser", "Custom text: \(text)")
         Task {
             let cwd = session.cwd
+            // Navigate to "Type something" option
             for _ in 0..<optionCount {
                 performGhosttyAction("csi:B", cwd: cwd)
             }
             try? await Task.sleep(nanoseconds: 100_000_000)
             performGhosttyAction("text:\\r", cwd: cwd)
+            // Wait for text input prompt
             try? await Task.sleep(nanoseconds: 500_000_000)
             // Type the custom text + Enter
             let escaped = text.replacingOccurrences(of: "\\", with: "\\\\")
@@ -241,33 +233,28 @@ struct AskUserQuestionView: View {
         }
     }
 
-    /// Execute a Ghostty action on the cmux terminal matching the session's cwd.
+    /// Execute a Ghostty action on the cmux terminal via AppleScript.
+    /// cmux's `perform action` sends real keyboard events through
+    /// Ghostty's input system — works with Claude Code's raw terminal mode.
     @discardableResult
     private func performGhosttyAction(_ action: String, cwd: String) -> Bool {
         let escapedCwd = cwd.replacingOccurrences(of: "\"", with: "\\\"")
-        // Use osascript with explicit result capture
         let script = """
         tell application "cmux"
             set targetTerm to (first terminal whose working directory is "\(escapedCwd)")
-            set result to (perform action "\(action)" on targetTerm)
-            return result as text
+            perform action "\(action)" on targetTerm
         end tell
         """
         let process = Process()
-        let pipe = Pipe()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", script]
-        process.standardOutput = pipe
+        process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
         do {
             try process.run()
             process.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            DebugLogger.log("AskUser", "perform action '\(action)' → exit=\(process.terminationStatus) output='\(output)'")
-            return process.terminationStatus == 0 && output == "true"
+            return process.terminationStatus == 0
         } catch {
-            DebugLogger.log("AskUser", "perform action '\(action)' error: \(error)")
             return false
         }
     }
