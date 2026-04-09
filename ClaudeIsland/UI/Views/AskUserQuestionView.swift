@@ -15,6 +15,7 @@ struct AskUserQuestionView: View {
     @State private var customText: String = ""
     @State private var hoveredIndex: Int? = nil
     @State private var isSending: Bool = false
+    @State private var answeredCount: Int = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -56,6 +57,7 @@ struct AskUserQuestionView: View {
             isSending = false
             customText = ""
             hoveredIndex = nil
+            answeredCount = 0
         }
     }
 
@@ -213,10 +215,18 @@ struct AskUserQuestionView: View {
         }
         performGhosttyAction("text:\\r", cwd: cwd) // Enter
 
-        DebugLogger.log("AskUser", "Sent \(downPresses) arrows + Enter")
+        answeredCount += 1
+        let totalQuestions = context.questions.count
+        DebugLogger.log("AskUser", "Sent \(downPresses) arrows + Enter (\(answeredCount)/\(totalQuestions))")
 
-        // Reset after delay — allows clicking the next question in a multi-question call.
-        // Terminal shows questions one at a time; the next appears after ~500ms.
+        // Multi-question: after all questions answered, auto-confirm "Submit answers"
+        if totalQuestions > 1 && answeredCount >= totalQuestions {
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            performGhosttyAction("text:\\r", cwd: cwd) // Confirm submit
+            DebugLogger.log("AskUser", "Auto-confirmed submit")
+        }
+
+        // Reset after delay to allow next question click
         try? await Task.sleep(nanoseconds: 800_000_000)
         isSending = false
     }
