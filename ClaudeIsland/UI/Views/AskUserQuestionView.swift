@@ -191,17 +191,9 @@ struct AskUserQuestionView: View {
 
     // MARK: - Terminal Sending
 
-    /// Release the hook with "ask" (so Claude Code shows its normal UI),
-    /// wait for the UI to render, then send the option number to the terminal.
+    /// Send the option number directly to the terminal where Claude Code's
+    /// AskUserQuestion UI is waiting for input.
     private func approveAndSendOption(index: Int) async {
-        // Step 1: Release the hook — respond with "ask" so Claude Code
-        // shows its normal terminal UI instead of skipping it
-        releaseHook()
-
-        // Step 2: Wait for Claude Code to render the question UI in the terminal
-        try? await Task.sleep(nanoseconds: 800_000_000) // 800ms
-
-        // Step 3: Send the option number to the terminal
         await sendToTerminal("\(index)")
     }
 
@@ -212,26 +204,11 @@ struct AskUserQuestionView: View {
         let optionCount = context.questions.first?.options.count ?? 0
         DebugLogger.log("AskUser", "Custom text: \(text)")
         Task {
-            releaseHook()
-            try? await Task.sleep(nanoseconds: 800_000_000)
             // Send "Other" option (last + 1), then the text
             await sendToTerminal("\(optionCount + 1)")
             try? await Task.sleep(nanoseconds: 500_000_000)
             await sendToTerminal(text)
         }
-    }
-
-    /// Respond to the PermissionRequest hook with "ask" — this makes the
-    /// Python script exit without output, so Claude Code falls back to
-    /// showing its normal interactive UI in the terminal.
-    /// Using "allow" would skip the interactive UI entirely.
-    private func releaseHook() {
-        guard let permission = session.activePermission else { return }
-        HookSocketServer.shared.respondToPermission(
-            toolUseId: permission.toolUseId,
-            decision: "ask"
-        )
-        DebugLogger.log("AskUser", "Released hook with 'ask' for \(permission.toolUseId.prefix(12))")
     }
 
     /// Send text to the terminal via cmux input text or AppleScript.

@@ -155,9 +155,8 @@ extension HookEvent {
             ))
         }
 
-        // AskUserQuestion creates waitingForQuestion state
-        if event == "PreToolUse" && status == "waiting_for_question",
-           let _ = tool {
+        // AskUserQuestion: detect from PreToolUse by tool name
+        if event == "PreToolUse" && tool == "AskUserQuestion" {
             let questionItems = parseQuestionItems(from: toolInput)
             return .waitingForQuestion(QuestionContext(
                 toolUseId: toolUseId ?? "",
