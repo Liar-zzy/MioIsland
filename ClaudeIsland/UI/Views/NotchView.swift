@@ -631,21 +631,21 @@ struct NotchView: View {
         let newQuestionIds = currentIds.subtracting(previousWaitingForQuestionIds)
 
         if !newQuestionIds.isEmpty {
-            // A session just entered waitingForQuestion — always show the question UI.
-            // AskUserQuestion should NOT be suppressed by smart suppression — the user
-            // wants to use Code Island as a quick-reply interface even when the terminal
-            // is frontmost.
-            if let session = questionSessions.first(where: { newQuestionIds.contains($0.stableId) }) {
+            // Only open question UI if not already showing one — prevents UI swap
+            // that can cause accidental clicks when content changes under the cursor.
+            if case .question = viewModel.contentType {
+                DebugLogger.log("AskUser", "[question] newIds=\(newQuestionIds.count) — already showing question, skipping")
+            } else if let session = questionSessions.first(where: { newQuestionIds.contains($0.stableId) }) {
                 DebugLogger.log("AskUser", "[question] newIds=\(newQuestionIds.count) — opening question UI")
                 viewModel.notchOpen(reason: .notification)
                 viewModel.showQuestion(for: session)
-            }
 
-            // Bounce the notch to attract attention
-            DispatchQueue.main.async {
-                isBouncing = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    isBouncing = false
+                // Bounce the notch to attract attention
+                DispatchQueue.main.async {
+                    isBouncing = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        isBouncing = false
+                    }
                 }
             }
         }
