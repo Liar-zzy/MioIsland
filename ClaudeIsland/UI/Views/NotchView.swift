@@ -155,7 +155,7 @@ struct NotchView: View {
 
     /// Extra width for expanding activities (like Dynamic Island).
     ///
-    /// Reads from `notchStore.customization.maxWidth` so the live edit
+    /// Reads from the per-screen `ScreenGeometry.maxWidth` so the live edit
     /// "resize" arrow buttons visibly grow / shrink the notch as the
     /// user drives the slider. The user's `maxWidth` is the total
     /// closed-with-content width — subtracting the hardware notch

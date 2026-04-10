@@ -12,7 +12,7 @@
 //    the active screen. So panel x=0 corresponds to the screen's
 //    left edge and the screen's mid X is panel.size.width/2.
 //  - The visible notch is rendered by NotchView at screen-mid plus
-//    `customization.horizontalOffset`. We mirror that math here so
+//    the per-screen `ScreenGeometry.horizontalOffset`. We mirror that math here so
 //    the dashed border, drag-catcher, and arrow buttons all align
 //    pixel-for-pixel with the real notch.
 //
